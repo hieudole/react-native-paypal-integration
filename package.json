@@ -1,6 +1,6 @@
 {
   "name": "react-native-paypal-integration",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A PayPal wrapper for React Native",
   "main": "index.js",
   "scripts": {
