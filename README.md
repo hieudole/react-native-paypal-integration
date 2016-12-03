@@ -61,7 +61,14 @@ PayPal.profileSharing({
     environment: PayPal.SANDBOX,
     merchantName: 'Your merchant name',
     merchantPrivacyPolicyUri: 'http://your-url.com/policy',
-    merchantUserAgreementUri: 'http://your-url.com/legal'
+    merchantUserAgreementUri: 'http://your-url.com/legal',
+    scopes: [
+        PayPal.SCOPE_PROFILE, // Full Name, Birth Date, Time Zone, Locale, Language
+        PayPal.SCOPE_PAYPAL_ATTRIBUTES, // Age Range, Account Status, Account Type, Account Creation Date
+        PayPal.SCOPE_EMAIL, // Email
+        PayPal.SCOPE_ADDRESS, // Address
+        PayPal.SCOPE_PHONE // Telephone
+    ]
   }, 
   function (r) {
     console.log(r);
