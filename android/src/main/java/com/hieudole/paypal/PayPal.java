@@ -12,6 +12,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.WritableMap;
 
 import com.paypal.android.sdk.payments.PayPalAuthorization;
@@ -49,6 +50,14 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
   private static final String ENVIRONMENT_SANDBOX = "SANDBOX";
   private static final String ENVIRONMENT_PRODUCTION = "PRODUCTION";
 
+  private static final String SCOPE_FUTURE_PAYMENTS = "SCOPE_FUTURE_PAYMENTS";
+  private static final String SCOPE_PROFILE = "SCOPE_PROFILE";
+  private static final String SCOPE_PAYPAL_ATTRIBUTES = "SCOPE_PAYPAL_ATTRIBUTES";
+  private static final String SCOPE_EMAIL = "SCOPE_EMAIL";
+  private static final String SCOPE_ADDRESS = "SCOPE_ADDRESS";
+  private static final String SCOPE_PHONE = "SCOPE_PHONE";
+  private static final String SCOPE_OPENID = "SCOPE_OPENID";
+
   private Callback successCallback;
 
   private Callback errorCallback;
@@ -61,25 +70,20 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
     reactContext.addActivityEventListener(this);
   }
 
-  @Override
-  public String getName() {
-    return "PayPal";
-  }
+  private PayPalOAuthScopes getOauthScopes(final ReadableMap config) {
+    Set<String> scopes = new HashSet<String>();
 
-  @Override public Map<String, Object> getConstants() {
-    final Map<String, Object> constants = new HashMap<>();
-
-    constants.put(ENVIRONMENT_NO_NETWORK, PayPalConfiguration.ENVIRONMENT_NO_NETWORK);
-    constants.put(ENVIRONMENT_SANDBOX, PayPalConfiguration.ENVIRONMENT_SANDBOX);
-    constants.put(ENVIRONMENT_PRODUCTION, PayPalConfiguration.ENVIRONMENT_PRODUCTION);
-
-    return constants;
-  }
-
-  private PayPalOAuthScopes getOauthScopes() {
-        Set<String> scopes = new HashSet<String>(Arrays.asList(PayPalOAuthScopes.PAYPAL_SCOPE_EMAIL, PayPalOAuthScopes.PAYPAL_SCOPE_ADDRESS));
-        return new PayPalOAuthScopes(scopes);
+    ReadableArray readableArray = config.getArray("scopes");
+    for (int index = 0; index < readableArray.size(); index++) {
+      String scope = readableArray.getString(index);
+      Log.i("PayPalModule", scope);
+      if (!scopes.contains(scope)) {
+        scopes.add(scope);
+      }
     }
+    
+    return new PayPalOAuthScopes(scopes);
+  }
   
   private PayPalConfiguration CreatePayPalConfiguration(final ReadableMap config) {
     final String environment = config.getString("environment");
@@ -94,29 +98,9 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
       .merchantName(merchantName)
       .merchantPrivacyPolicyUri(Uri.parse(merchantPrivacyPolicyUri))
       .merchantUserAgreementUri(Uri.parse(merchantUserAgreementUri));
-  }
+   }
 
-  @ReactMethod
-  public void profileSharing(final ReadableMap payPalConfig, Callback callback)  {
-    Activity currentActivity = this.getCurrentActivity();
-    if (currentActivity == null) {
-      return;
-    }
-
-    this.callback = callback;
-
-    PayPalConfiguration config = this.CreatePayPalConfiguration(payPalConfig);
-   
-    this.startPayPalService(config, currentActivity);
-  
-    Intent intent = new Intent(currentActivity, PayPalProfileSharingActivity.class);
-    intent.putExtra(PayPalService.EXTRA_PAYPAL_CONFIGURATION, config);
-    intent.putExtra(PayPalProfileSharingActivity.EXTRA_REQUESTED_SCOPES, getOauthScopes());
-    
-    currentActivity.startActivityForResult(intent, REQUEST_CODE_PROFILE_SHARING);
-  }
-
-  private void startPayPalService(PayPalConfiguration config, Activity currentActivity) {
+   private void startPayPalService(PayPalConfiguration config, Activity currentActivity) {
     if (currentActivity == null) {
       return;
     }
@@ -134,10 +118,52 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
 
     currentActivity.stopService(new Intent(currentActivity, PayPalService.class));
   }
+
+  @Override
+  public String getName() {
+    return "PayPal";
+  }
+
+  @Override public Map<String, Object> getConstants() {
+    final Map<String, Object> constants = new HashMap<>();
+
+    constants.put(ENVIRONMENT_NO_NETWORK, PayPalConfiguration.ENVIRONMENT_NO_NETWORK);
+    constants.put(ENVIRONMENT_SANDBOX, PayPalConfiguration.ENVIRONMENT_SANDBOX);
+    constants.put(ENVIRONMENT_PRODUCTION, PayPalConfiguration.ENVIRONMENT_PRODUCTION);
+
+    constants.put(SCOPE_FUTURE_PAYMENTS, PayPalOAuthScopes.PAYPAL_SCOPE_FUTURE_PAYMENTS);
+    constants.put(SCOPE_PROFILE, PayPalOAuthScopes.PAYPAL_SCOPE_PROFILE);
+    constants.put(SCOPE_PAYPAL_ATTRIBUTES, PayPalOAuthScopes.PAYPAL_SCOPE_PAYPAL_ATTRIBUTES);
+    constants.put(SCOPE_EMAIL, PayPalOAuthScopes.PAYPAL_SCOPE_EMAIL);
+    constants.put(SCOPE_ADDRESS, PayPalOAuthScopes.PAYPAL_SCOPE_ADDRESS);
+    constants.put(SCOPE_ADDRESS, PayPalOAuthScopes.PAYPAL_SCOPE_ADDRESS);
+    constants.put(SCOPE_PHONE, PayPalOAuthScopes.PAYPAL_SCOPE_PHONE);
+    constants.put(SCOPE_OPENID, PayPalOAuthScopes.PAYPAL_SCOPE_OPENID);
+
+    return constants;
+  }
+
+  @ReactMethod
+  public void profileSharing(final ReadableMap payPalConfig, Callback callback)  {
+    Activity currentActivity = this.getCurrentActivity();
+    if (currentActivity == null) {
+      return;
+    }
+
+    this.callback = callback;
+
+    PayPalConfiguration config = this.CreatePayPalConfiguration(payPalConfig);
+  
+    this.startPayPalService(config, currentActivity);
+  
+    Intent intent = new Intent(currentActivity, PayPalProfileSharingActivity.class);
+    intent.putExtra(PayPalService.EXTRA_PAYPAL_CONFIGURATION, config);
+    intent.putExtra(PayPalProfileSharingActivity.EXTRA_REQUESTED_SCOPES, this.getOauthScopes(payPalConfig));
+    
+    currentActivity.startActivityForResult(intent, REQUEST_CODE_PROFILE_SHARING);
+  }
   
   public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
-    Log.i("PayPalModule", "onActivityResult: requestCode = " + requestCode);
-
     if (requestCode != REQUEST_CODE_PAYMENT && 
         requestCode != REQUEST_CODE_FUTURE_PAYMENT &&
         requestCode != REQUEST_CODE_PROFILE_SHARING) {
