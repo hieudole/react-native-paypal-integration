@@ -85,7 +85,7 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
     return new PayPalOAuthScopes(scopes);
   }
   
-  private PayPalConfiguration CreatePayPalConfiguration(final ReadableMap config) {
+  private PayPalConfiguration createPayPalConfiguration(final ReadableMap config) {
     final String environment = config.getString("environment");
     final String clientId = config.getString("clientId");
     final String merchantName = config.getString("merchantName");
@@ -110,8 +110,7 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
     currentActivity.startService(intent);
   }
 
-  private void stopPayPalService() {
-    Activity currentActivity = this.getCurrentActivity();
+  private void stopPayPalService(Activity currentActivity) {
     if (currentActivity == null) {
       return;
     }
@@ -139,7 +138,7 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
     constants.put(SCOPE_ADDRESS, PayPalOAuthScopes.PAYPAL_SCOPE_ADDRESS);
     constants.put(SCOPE_PHONE, PayPalOAuthScopes.PAYPAL_SCOPE_PHONE);
     constants.put(SCOPE_OPENID, PayPalOAuthScopes.PAYPAL_SCOPE_OPENID);
-
+    
     return constants;
   }
 
@@ -152,7 +151,7 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
 
     this.callback = callback;
 
-    PayPalConfiguration config = this.CreatePayPalConfiguration(payPalConfig);
+    PayPalConfiguration config = this.createPayPalConfiguration(payPalConfig);
   
     this.startPayPalService(config, currentActivity);
   
@@ -164,6 +163,15 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
   }
   
   public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+    Activity activity = this.getCurrentActivity();
+    this.processOnActivityResult(activity, requestCode, resultCode, data);
+  }
+
+  public void onActivityResult(Activity activity, final int requestCode, final int resultCode, final Intent data) {
+    this.processOnActivityResult(activity, requestCode, resultCode, data);
+  }
+
+  private void processOnActivityResult(Activity activity, final int requestCode, final int resultCode, final Intent data) {
     if (requestCode != REQUEST_CODE_PAYMENT && 
         requestCode != REQUEST_CODE_FUTURE_PAYMENT &&
         requestCode != REQUEST_CODE_PROFILE_SHARING) {
@@ -194,7 +202,7 @@ public class PayPal extends ReactContextBaseJavaModule implements ActivityEventL
         }
     }
 
-    this.stopPayPalService();
+    this.stopPayPalService(activity);
   }
 
   public void onNewIntent(Intent intent) { }
